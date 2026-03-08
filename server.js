@@ -1,39 +1,44 @@
-const express = require("express")
-const cors = require("cors")
-const { MongoClient } = require("mongodb")
+const express = require("express");
+const cors = require("cors");
+const { MongoClient } = require("mongodb");
+require("dotenv").config(); // Load environment variables
 
-const app = express()
+const app = express();
 
-app.use(cors())
-app.use(express.json())
+app.use(cors());
+app.use(express.json());
 
-const uri = "mongodb+srv://puzzleUser:6wlXskW1pYbPqmRh@cluster0.kifadyv.mongodb.net/?appName=Cluster0"
+// Use the URI from .env
+const uri = process.env.MONGO_URI;
+const client = new MongoClient(uri);
 
-const client = new MongoClient(uri)
+let scoresCollection;
 
-let scoresCollection
+async function start() {
+  try {
+    await client.connect();
+    const db = client.db("puzzleDB");
+    scoresCollection = db.collection("scores");
 
-async function start(){
-
-await client.connect()
-
-const db = client.db("puzzleDB")
-scoresCollection = db.collection("scores")
-
-app.listen(3000, () => {
-console.log("Server running on http://localhost:3000")
-})
-
+    app.listen(3000, () => {
+      console.log("Server running on http://localhost:3000");
+    });
+  } catch (err) {
+    console.error("Failed to connect to MongoDB:", err.message);
+    process.exit(1); // exit explicitly if connection fails
+  }
 }
 
-start()
+start();
 
-app.post("/score", async (req,res)=>{
-
-const score = req.body
-
-await scoresCollection.insertOne(score)
-
-res.send({status:"saved"})
-
-})
+// Route to save scores
+app.post("/score", async (req, res) => {
+  try {
+    const score = req.body;
+    await scoresCollection.insertOne(score);
+    res.send({ status: "saved" });
+  } catch (err) {
+    console.error("Error inserting score:", err.message);
+    res.status(500).send({ status: "error", message: err.message });
+  }
+});

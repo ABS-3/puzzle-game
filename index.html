@@ -84,6 +84,26 @@ button{
 padding:6px 12px;
 cursor:pointer;
 }
+
+#leaderboard{
+width:320px;
+margin-top:10px;
+background:white;
+padding:10px;
+border-radius:8px;
+}
+
+body.dark #leaderboard{
+background:#333;
+}
+
+.scoreRow{
+display:flex;
+justify-content:space-between;
+padding:4px 0;
+border-bottom:1px solid #ddd;
+font-size:14px;
+}
 </style>
 </head>
 
@@ -103,6 +123,9 @@ cursor:pointer;
 
 <div class="grid" id="grid"></div>
 
+<h3>🏆 Leaderboard</h3>
+<div id="leaderboard"></div>
+
 <div class="controls">
 <button id="shuffleBtn">Shuffle</button>
 <button id="restartBtn">Restart</button>
@@ -113,6 +136,7 @@ cursor:pointer;
 
 <script>
 
+const leaderboardDiv = document.getElementById("leaderboard")
 const grid=document.getElementById("grid")
 const movesDisplay=document.getElementById("moves")
 const timeDisplay=document.getElementById("time")
@@ -245,21 +269,27 @@ updateBestScores()
 
 tiles.forEach(t=>t.classList.add("win"))
 
-fetch("http://localhost:3000/score",{
+const playerName = prompt("🎉 Puzzle Solved! Enter your name:");
+
+fetch("/api/score",{
 method:"POST",
 headers:{
 "Content-Type":"application/json"
 },
 body:JSON.stringify({
-moves:moves,
-time:time
+name: playerName || "Anonymous",
+moves: moves,
+time: time
 })
-});
+})
+.then(res => res.json())
+.then(()=>{
 
-setTimeout(()=>{
-alert("🎉 Puzzle Solved!")
-shuffle()
-},300)
+alert("🎉 Puzzle Solved!");
+loadLeaderboard();
+shuffle();
+
+});
 
 }
 }
@@ -288,8 +318,33 @@ function shuffle(){
     positions = [...arr];        // shuffled positions
     startPositions = [...arr];   // save for restart
     createTiles();               // now uses shuffled positions correctly
+    loadLeaderboard()
 }
 
+function loadLeaderboard(){
+
+fetch("/api/leaderboard")
+.then(res => res.json())
+.then(data => {
+
+leaderboardDiv.innerHTML=""
+
+data.forEach((score,i)=>{
+
+const row=document.createElement("div")
+row.classList.add("scoreRow")
+
+row.innerHTML = `
+<span>#${i+1} ${score.name}</span>
+<span>${score.time}s | ${score.moves} moves</span>
+`
+
+leaderboardDiv.appendChild(row)
+
+})
+
+})
+}
 
 function updateBestScores(){
 
@@ -356,6 +411,8 @@ shuffle()
 
 bestTimeDisplay.textContent = localStorage.getItem("bestTime") || "--"
 bestMovesDisplay.textContent = localStorage.getItem("bestMoves") || "--"
+
+loadLeaderboard()
 
 </script>
 

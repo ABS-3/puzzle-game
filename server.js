@@ -8,7 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Use the URI from .env
+// Use the URI from .env (make sure it's set in Vercel as MONGO_URI)
 const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri);
 
@@ -20,12 +20,14 @@ async function start() {
     const db = client.db("puzzleDB");
     scoresCollection = db.collection("scores");
 
-    app.listen(3000, () => {
-      console.log("Server running on http://localhost:3000");
+    // Vercel provides PORT automatically, fallback to 3000 for local dev
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+      console.log(`Server running on http://localhost:${port}`);
     });
   } catch (err) {
     console.error("Failed to connect to MongoDB:", err.message);
-    process.exit(1); // exit explicitly if connection fails
+    process.exit(1);
   }
 }
 
